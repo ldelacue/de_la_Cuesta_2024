@@ -6,6 +6,9 @@
 
 %                                               Luis de la Cuesta Ferrer
 %                                               25/09/2024
+
+% Added a second section to generate plots tha track the HR S1
+% and FAR S5 of all subjects.                   02/19/2025  
 %% PLot reward punishment and, premature responses rates on the top of the data (Figure 2c & Figure S6a)
 clear all
 Dataframe = 0; % 0 for Long Rats, 1 for Short Rats, 2 for pigeons.
@@ -42,6 +45,50 @@ end
 legend([l1 l2 l3], {'Leftward responses','Premature responses','Rewarded trials'},'Location','best')
 
 end
+%% Plot change in performance (HR S1 and FAR S5) thoughout exp. sessions (Fig 2d (rats), and FigS6.b (pigeons))
+
+clear all
+Dataframe = 2; % 0 for Long Rats, 1 for Short Rats, 2 for pigeons.
+
+if Dataframe ==0
+    load("Long_struct.mat")
+    Dataset  = Long_schedule;
+    Pigeons = 0;
+    Nr_sessions = 80;
+elseif Dataframe ==2
+    load("Pigeon_struct.mat")
+    Dataset  = Pigeon_schedule;
+    Pigeons = 1;
+    Nr_sessions = 120; 
+end
+
+for iDataset=1:length(Dataset)
+    DataMatrix = Dataset(iDataset).allBDataKDB;
+    DataMatrix= DataMatrix(~isnan( DataMatrix(:,1)),:); % Clean aborts in Rats
+    DataMatrix= DataMatrix(~DataMatrix(:,3)==0,:);      % Clean aborts in Pigeons
+
+    for iSess = 1:Nr_sessions %number of sessions to plot
+        Nr_completed_trials(iDataset,iSess) = size(find(DataMatrix(:,7)==iSess),1);
+        Nr_S1_trials (iDataset,iSess)       = size(DataMatrix(DataMatrix(:,1)==1 & DataMatrix(:,7)==iSess,:),1);
+        Nr_S5_trials (iDataset,iSess)       = size(DataMatrix(DataMatrix(:,1)==5 & DataMatrix(:,7)==iSess,:),1);
+        Hits_S1    (iDataset,iSess)         = size(DataMatrix(DataMatrix(:,1)==1 & DataMatrix(:,3)==1 & DataMatrix(:,7)==iSess,:),1); %count nr of R1 responded S1 stim
+        FA_S5     (iDataset,iSess)          = size(DataMatrix(DataMatrix(:,1)==5 & DataMatrix(:,3)==1 & DataMatrix(:,7)==iSess,:),1); %count nr of R1 responded S5 stim
+
+        HR_S1 (iDataset,iSess)  = Hits_S1(iDataset,iSess)/Nr_S1_trials(iDataset,iSess);
+        FAR_S5(iDataset,iSess)  = FA_S5(iDataset,iSess)/Nr_S5_trials(iDataset,iSess);
+    end
+end
+
+% Plot
+figure; hold all;
+
+plot(HR_S1','b-','Linewidth',0.5);
+l1 = plot(mean(HR_S1,1),'b-','Linewidth',5);
+plot(FAR_S5','r-','Linewidth',0.5);
+l2 = plot(mean(FAR_S5,1),'r-','Linewidth',5);
+
+legend([l1 l2], {'HR S1','FAR S5'},'Location','best')
+axis([0 Nr_sessions+3 0 1])
 
 %% function[RewxSess]=RewardDensxSess(allBDataKDB)
 function[RewxSess]=RewardDensxSess(allBDataKDB)
