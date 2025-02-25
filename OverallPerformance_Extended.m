@@ -6,7 +6,6 @@
 
 %                                                   Luis 25/02/2025
 %% Caller Rew.Dens across conditions
-addpath '\\uni-mainz.de\dfs\Profiles\Settings\ldelacue\Desktop\code\Project 1 - Schedule to be fitted\Summary Statistics'
 clear all
 load("Long_prime_struct.mat")      % this struct is different because it contains not allBDataKDB but allBData matrixes
 Dataset = Long_prime_schedule;
@@ -16,17 +15,17 @@ LowB_95CI_RD    = zeros(length(Dataset),length(SaveOrder));
 HighB_95CI_RD   = zeros(length(Dataset),length(SaveOrder));
 
 for iDataset = 1:length(Dataset)
-    DataMatrix  = Dataset(iDataset).allBDataKDB;
-    DataMatrix1 = DataMatrix(~isnan(DataMatrix(:,3)),:); % remove Withdrawals
-    [RewxSess]=RewardDensxSess(DataMatrix1);
+    DataMatrix   = Dataset(iDataset).allBDataKDB;
+    DataMatrix1  = DataMatrix(~isnan(DataMatrix(:,3)),:); % remove Withdrawals
+    [RewxSess]   = RewardDensxSess(DataMatrix1);
     RewDensxSess = RewxSess(6,:);
-    sequence    = Dataset(iDataset).sequence;
+    sequence     = Dataset(iDataset).sequence;
     for iCond = 1:max(DataMatrix1(:,6))
-        Trial_ind_in_Cond = find(DataMatrix1(:,6)==iCond);
-        Nr_Rew_in_Cond   =  length(find(DataMatrix1(Trial_ind_in_Cond,4)==1) );
-        Mean_RD(iDataset,iCond) =  Nr_Rew_in_Cond/ length(Trial_ind_in_Cond);
-        [phat,pci] = binofit(Nr_Rew_in_Cond,length(Trial_ind_in_Cond));
-        LowB_95CI_RD_2 = Mean_RD(iDataset,iCond)-1.96*msep(Mean_RD(iDataset,iCond),length(Trial_ind_in_Cond));HighB_95CI_RD_2 = Mean_RD(iDataset,iCond)+1.96*msep(Mean_RD(iDataset,iCond),length(Trial_ind_in_Cond));  % normal approximation - should be highly similar to pci
+        Trial_ind_in_Cond       = find(DataMatrix1(:,6)==iCond);
+        Nr_Rew_in_Cond          = length(find(DataMatrix1(Trial_ind_in_Cond,4)==1) );
+        Mean_RD(iDataset,iCond) = Nr_Rew_in_Cond/ length(Trial_ind_in_Cond);
+        [phat,pci]              = binofit(Nr_Rew_in_Cond,length(Trial_ind_in_Cond));
+        LowB_95CI_RD_2          = Mean_RD(iDataset,iCond)-1.96*msep(Mean_RD(iDataset,iCond),length(Trial_ind_in_Cond));HighB_95CI_RD_2 = Mean_RD(iDataset,iCond)+1.96*msep(Mean_RD(iDataset,iCond),length(Trial_ind_in_Cond));  % normal approximation - should be highly similar to pci
         LowB_95CI_RD (iDataset,iCond) = pci(1); HighB_95CI_RD (iDataset,iCond) = pci(2);
 
     end
@@ -35,7 +34,7 @@ for iDataset = 1:length(Dataset)
         WhichCond   = find ( strcmp(sequence,SaveOrder{iOrder})==1);
         WhichCond   = WhichCond(1);
         CondName    = SaveOrder{iOrder};
-        Ordered_Mean_RD(iDataset,iOrder) = Mean_RD(iDataset,WhichCond);
+        Ordered_Mean_RD(iDataset,iOrder)       = Mean_RD(iDataset,WhichCond);
         Ordered_LowB_95CI_RD(iDataset,iOrder)  = LowB_95CI_RD(iDataset,WhichCond);
         Ordered_HighB_95CI_RD(iDataset,iOrder) = HighB_95CI_RD(iDataset,WhichCond);
 
@@ -79,7 +78,7 @@ axis square
 axis( [ 5 80 0 1] )
 ylabel('Reward Density')
 
-%% Caller RT & MT
+%% Caller Reaction (RT) and Movement Times (MT)
 clear all
 load("Long_prime_struct.mat")
 Dataset = Long_prime_schedule;
@@ -283,7 +282,40 @@ set     (ax(6),'XTickLabel',tickLabels);
 axis    (ax(6), [0 10 -0.2 0.2])
 axis    (ax(6), 'square')
 
-%%   function [sep] = msep(p,n)
+%% function[RewxSess]=RewardDensxSess(allBDataKDB)
+
+function[RewxSess]=RewardDensxSess(allBDataKDB)
+
+% This function takes allBDataKDB and creates a matrix where columns =
+% sessions and
+
+% row 1= Rewards in R1 side
+% row 2= Rewards in R2 side
+% row 3= Total Rewards
+% row 4= Total trials
+% row 5= Rewards in R2 vs total rewards
+% row 6= Reward Density x session
+
+
+
+responded     = not(isnan(allBDataKDB(:,3)));                               % Get rid of NaNs for Rats
+UpallBDataKDB = allBDataKDB(responded,:);
+UpallBDataKDB = UpallBDataKDB(~allBDataKDB(:,3)==0,:);                      % Get rid of NaNs for Pigeons. These two do not interfere
+
+
+for i=1:max(UpallBDataKDB(:,7))
+    
+    RewxSess(1,i) = length(find(UpallBDataKDB(:,7)==i & UpallBDataKDB(:,4)==1 & UpallBDataKDB(:,2)==1)); 
+    RewxSess(2,i) = length(find(UpallBDataKDB(:,7)==i & UpallBDataKDB(:,4)==1 & UpallBDataKDB(:,2)==2)); 
+    RewxSess(3,i) = length(find(UpallBDataKDB(:,7)==i & UpallBDataKDB(:,4)==1)); % 
+    RewxSess(4,i) = length(find(UpallBDataKDB(:,7)==i));                         % 
+    
+end
+
+RewxSess(5,:) = RewxSess(2,:)./RewxSess(3,:); %
+RewxSess(6,:) = RewxSess(3,:)./RewxSess(4,:); %
+end
+%% function [sep] = msep(p,n)
 
 function [sep] = msep(p,n)
 % function [sep] = msep(p,n)
